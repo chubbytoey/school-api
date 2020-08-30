@@ -26,5 +26,18 @@ Route.group(() => {
   Route.post('/teachers','TeacherController.store') //create
 
   Route.get('/groups','GroupController.index')
+  Route.get('/groups/:id','GroupController.show')
+  Route.post('/groups','GroupController.store') 
 
+  Route.get('/subjects','/SubjectController.index')
+  Route.get('/subjects/:id','/SubjectController.show')
+  Route.post('/subjects','SubjectController.store')
+
+  Route.get('/students','StudentController.index')
+  Route.get('/students/:id','StudentController.show')
+  Route.post('/students','StudentController.store')
+
+  Route.get('/enrollments','EnrollmentController.index')
+  Route.get('/enrollments/:id','EnrollmentController.show')
+  Route.post('/enrollments','EnrollmentController.store')
 }).prefix('api/v1')
