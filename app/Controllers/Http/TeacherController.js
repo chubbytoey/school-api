@@ -5,8 +5,8 @@ const Hash = use('Hash')
 
 function numberTypeParamValidator (number) {
     if(Number.isNaN(parseInt(number)))
-    return {status:200 , error:undefined , data:teacher}
-    // return {error:`param: ${number} is not supported, please use number type param instead`}
+    return {error:`param: ${number} is not supported, please use number type param instead`}
+    // return {status:200 , error:undefined , data:teacher}
     // throw new Error(`param: ${number} is not supported, please use number type param instead`) ส่งerror500หน้าบ้านพัง
     return {}
 }
@@ -23,7 +23,7 @@ class TeacherController {
         const ValidatedValue = numberTypeParamValidator(id)
 
         if(ValidatedValue.error)
-        return {status:500 , error:undefined , data:undefined}
+        return {status:500 , error:ValidatedValue.error , data:undefined}
 
         const teacher = await Database
             .select('*')
@@ -39,10 +39,14 @@ class TeacherController {
 
         const missingKeys = []
 
-        if(!first_name) missingKeys.push('first_name')
-        if(!last_name) missingKeys.push('last_name')
-        if(!email) missingKeys.push('email')
-        if(!password) missingKeys.push('password')
+        if(!first_name)
+            missingKeys.push('first_name')
+        if(!last_name)
+            missingKeys.push('last_name')
+        if(!email)
+            missingKeys.push('email')
+        if(!password)
+            missingKeys.push('password')
 
         if(missingKeys.length)
             return {status:422 , error: `${missingKeys} is missing` , data:undefined}
