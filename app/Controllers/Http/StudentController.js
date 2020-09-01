@@ -47,7 +47,7 @@ class StudentController {
             missingKeys.push('password')
 
         if(missingKeys.length)
-            return {status:500 , error:`${missingKeys} is missing` , data:undefined}
+            return {status:422 , error:`${missingKeys} is missing` , data:undefined}
         
             const HashedPassword = await Hash.make(password)
 
