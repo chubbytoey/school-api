@@ -38,7 +38,7 @@ class SubjectController {
         if(!teacher_id) missingKeys.push('teacher_id')
 
         if(missingKeys.length)
-            return {status:500 , error:`${missingKeys} is missing` ,data:undefined}
+            return {status:422 , error:`${missingKeys} is missing` ,data:undefined}
         
         const subjects = await Database
             .table('subjects')
