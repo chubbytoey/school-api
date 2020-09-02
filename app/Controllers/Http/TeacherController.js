@@ -2,6 +2,8 @@
 
 const Database = use('Database')
 const Hash = use('Hash')
+const Validator  = use('Validator')
+const Teacher = use('App/Models/Teacher')
 
 function numberTypeParamValidator (number) {
     if(Number.isNaN(parseInt(number)))
@@ -12,10 +14,15 @@ function numberTypeParamValidator (number) {
 }
 
 class TeacherController {
-    async index() {
-        const teachers = await Database.table('teachers')
+    async index({request}) {
+        const {references = undefined} = request.qs
 
-        return teachers
+        const teachers = Teacher.query()
+        if(references) {
+            const extractedReferences = references.split(",")
+            teachers.with(extractedReferences)
+        }
+        return {status:200 , error:undefined , data:await teachers.fetch()}
     }
     async show({ request }) {
         const { id } = request.params
@@ -37,19 +44,34 @@ class TeacherController {
     async store({request}) {
         const {first_name , last_name , email , password} = request.body
 
-        const missingKeys = []
+        const rules = {
+            first_name: 'required',
+            last_name:'required',
+            email: 'required | email | unique:teachers,email',
+            password:'required|min:8'
+        }
 
-        if(!first_name)
-            missingKeys.push('first_name')
-        if(!last_name)
-            missingKeys.push('last_name')
-        if(!email)
-            missingKeys.push('email')
-        if(!password)
-            missingKeys.push('password')
+        const validation = await Validator.validateAll(request.body , rules)
 
-        if(missingKeys.length)
-            return {status:422 , error: `${missingKeys} is missing` , data:undefined}
+        if(validation.fails())
+            return {status:422 , error:validation.messages() , data:undefined}
+
+        // const missingKeys = []
+        // if(!first_name)
+        //     missingKeys.push('first_name')
+        // if(!last_name)
+        //     missingKeys.push('last_name')
+        // if(!email)
+        //     missingKeys.push('email')
+        // if(!password)
+        //     missingKeys.push('password')
+
+        // new RegExp("hello","gi").test("hello world") //ไม่นิยมใช้
+        // new RegExp(/hello/gi).test('hello World')
+        // (/hello/gi).test('hello world')
+
+        // if(missingKeys.length)
+            // return {status:422 , error: `${missingKeys} is missing` , data:undefined}
 
         const hashedPassword = await Hash.make(password)
 
@@ -59,7 +81,44 @@ class TeacherController {
 
         return {status:200,error:undefined,data:{first_name,last_name,email}}
     }
+    async update({request}) {
+        const {body , params} = request //เท่ากับสองตัวล่าง
+        //const body = request.body
+        //const param = request.param
 
+        const {id} = params
+        const {first_name , last_name , email} = body
+
+        const ValidatedValue = numberTypeParamValidator(id)
+        if(ValidatedValue.error)
+        return {status:500 , error:ValidatedValue.error , data:undefined}
+
+        const teacherID = await Database
+            .table('teachers')
+            .where({teacher_id : id})
+            .update({first_name , last_name , email})
+
+        const teacher = await Database
+            .table('teachers')
+            .where({teacher_id:id})
+            .first()
+
+        return {status:200 , error:undefined , data:teacher}
+    }
+    async destroy({request}) {
+        const {id} = request.params
+
+        const ValidatedValue = numberTypeParamValidator(id)
+        if(ValidatedValue.error)
+        return {status:500 , error:ValidatedValue.error , data:undefined}
+        
+        await Database
+            .table('teachers')
+            .where({teacher_id:id})
+            .delete()
+        
+        return {status:200 ,error:undefined, data: {message : 'success'}}
+    }
 }
 
 module.exports = TeacherController

@@ -2,6 +2,8 @@
 
 const Database = use('Database')
 const Hash = use('Hash')
+const Validator  = use('Validator')
+const Student = use('App/Models/Student')
 
 function numberTypeParamValidator(number) {
     if(Number.isNaN(parseInt.number)) 
@@ -10,10 +12,17 @@ function numberTypeParamValidator(number) {
 }
 
 class StudentController {
-    async index() {
-        const students = await Database.select('*').from('students')
+    async index({request}) {
+        const {references = undefined} = request.qs
 
-        return students
+        const student = Student.query()
+
+        if(references) {
+            const extractedReferences = references.split(",")
+            for(const value of extractedReferences) 
+                student.with(value)
+        }
+        return {status:200 , error:undefined , data:await student.fetch()}
     }
     async show({request}) {
         const {id} = request.params
@@ -32,30 +41,68 @@ class StudentController {
         return {status:200 , error:undefined , data:students || {}}
     }
     async store({request}) {
-        const {first_name,last_name,email,group_id,password} = request.body
+        const {first_name,last_name,email,password} = request.body
 
-        const missingKeys = []
-        if(!first_name)
-            missingKeys.push('first_name')
-        if(!last_name)
-            missingKeys.push('last_name')
-        if(!email)
-            missingKeys.push('email')
-        if(!group_id)
-            missingKeys.push('group_id')
-        if(!password)
-            missingKeys.push('password')
+        const rules = {
+            first_name : 'required',
+            last_name : 'required',
+            email : 'required | email | unique:students,email',
+            password : 'required | min:8'
+        }
 
-        if(missingKeys.length)
-            return {status:422 , error:`${missingKeys} is missing` , data:undefined}
-        
-            const HashedPassword = await Hash.make(password)
+        const Validation = await Validator.validateAll(request.body , rules)
+
+        if(Validation.fails())
+        return {status:422 , error:Validation.messages(),data:undefined}
+
+        const HashedPassword = await Hash.make(password)
 
         const students = await Database
             .table('students')
-            .insert({first_name,last_name,email,group_id,password:HashedPassword})
+            .insert({first_name,last_name,email,password:HashedPassword})
 
-        return {status:200 , error:undefined , data:{first_name,last_name,email,group_id}}
+        return {status:200 , error:undefined , data:{first_name,last_name,email}}
+    }
+    async update({request}) {
+        const {body , params} = request
+
+        const {id} = params
+        const {first_name,last_name,email} = body
+
+        const ValidatedValue = numberTypeParamValidator(id)
+        if(ValidatedValue.error)
+            return {status:500 , error:ValidatedValue.error , data:undefined}
+
+        const studentID = await Database
+            .table('students')
+            .where({student_id:id})
+            .update({first_name,last_name,email})
+
+        const student = await Database
+            .table('students')
+            .where({student_id:id})
+            .first()
+
+        return {status:200 , error:undefined , data:student}
+    }
+    async destroy({request}) {
+        const {id} = request.params
+
+        const ValidatedValue = numberTypeParamValidator(id)
+        if(ValidatedValue.error)
+            return {status:500 , error:ValidatedValue.error , data:undefined}
+
+        await Database
+            .table('students')
+            .where({student_id:id})
+            .delete()
+
+        const student = await Database
+            .table('students')
+            .where({student_id:id})
+            .first()
+
+        return {status:200 , error:undefined , data:{message:'success'}}
     }
 }
 
